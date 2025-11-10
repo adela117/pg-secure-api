@@ -54,24 +54,18 @@ jobs:
         if: always()
         run: docker rm -f api
 
-  sbom_and_deps:             # ✅ SBOM + dependency audit
+    sbom_and_deps:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      # Generate CycloneDX SBOM for the repo with Syft
+      - name: Generate SBOM (CycloneDX via Syft)
+        uses: anchore/sbom-action@v0
         with:
-          python-version: '3.11'
-
-      - name: Install tools and deps
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install cyclonedx-bom pip-audit
-          python -m pip install -r requirements.txt
-
-      - name: Generate SBOM (CycloneDX)
-        run: |
-          # Use the 'requirements' subcommand with short flags
-          python -m cyclonedx_py requirements -F json -o sbom.json -r requirements.txt
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
@@ -79,6 +73,13 @@ jobs:
           name: sbom
           path: sbom.json
 
+      # Dependency audit stays (separate tool, separate signal)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: pip-audit (strict)
         run: |
+          python -m pip install --upgrade pip
+
+          python -m pip install pip-audit
           pip-audit -r requirements.txt --strict
