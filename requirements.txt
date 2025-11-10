@@ -1,3 +1,2 @@
 fastapi>=0.110
 uvicorn>=0.23
-cyclonedx-py requirements -F json -o sbom.json -r requirements.txt
