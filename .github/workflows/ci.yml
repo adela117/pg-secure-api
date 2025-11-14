@@ -17,6 +17,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
       - run: python -m pip install -r requirements.txt -r requirements-dev.txt
       - run: python -m pytest -q
 
@@ -25,8 +31,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker layer cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-buildx-
+
       - name: Build image
-        run: docker build -t local/secure-api:ci .
+        run: |
+          docker build \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to   type=local,dest=/tmp/.buildx-cache \
+            -t local/secure-api:ci .
 
       - name: Run container
         run: docker run -d -p 8000:8000 --name api local/secure-api:ci
@@ -58,7 +75,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # SBOM (CycloneDX JSON) without Python CLI drama
       - name: Generate SBOM (CycloneDX via Syft)
         uses: anchore/sbom-action@v0
         with:
@@ -72,10 +88,15 @@ jobs:
           name: sbom
           path: sbom.json
 
-      # Dependency audit (Python)
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
       - name: pip-audit (strict)
         run: |
           python -m pip install --upgrade pip
