@@ -52,11 +52,7 @@ async def access_log(request: Request, call_next):
     response.headers["x-request-id"] = rid
     log.info(
         "rid=%s method=%s path=%s status=%s dur_ms=%d",
-        rid,
-        request.method,
-        request.url.path,
-        response.status_code,
-        ms,
+        rid, request.method, request.url.path, response.status_code, ms,
     )
     return response
 
@@ -89,7 +85,7 @@ class SumBody(BaseModel):
 # ----- endpoints -----
 @app.get("/health", tags=["meta"])
 @limiter.limit("20/minute")
-def health() -> Dict[str, Any]:
+def health(request: Request) -> Dict[str, Any]:   # <- add request
     return {"status": "ok", "ts": int(time.time())}
 
 @app.post("/echo", tags=["demo"], dependencies=[Depends(require_key)])
