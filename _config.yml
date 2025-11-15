@@ -1,0 +1,3 @@
+title: Secure API FastAPI CI
+description: FastAPI starter with CI security gates (tests, lint, SBOM, Trivy, ZAP, Bandit)
+theme: jekyll-theme-cayman
